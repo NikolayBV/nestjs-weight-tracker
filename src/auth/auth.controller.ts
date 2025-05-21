@@ -1,39 +1,77 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
+import { UsersService } from '../users/users.service';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { LoginDto } from '../dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  @Post('register')
-  register(
-    @Body()
-    dto: {
-      email: string;
-      password: string;
-      age: number;
-      height: number;
-    },
-  ) {
-    return this.authService.register(dto);
+  @Post('/refresh')
+  refreshToken(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.refreshToken(req, res);
   }
 
-  @Post('login')
+  @Post('/login')
   async login(
-    @Body() dto: { email: string; password: string },
-    @Req() req: Request,
+    @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken } = await this.authService.login(dto);
+    const { user, tokens } = await this.authService.login(loginDto);
 
-    res.cookie('refresh_token', refreshToken, {
+    res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return { accessToken };
+    res.status(HttpStatus.OK).json({
+      message: 'Успешный вход',
+      token: tokens.accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        age: user.age,
+        height: user.height,
+      },
+    });
+  }
+
+  @Post('/register')
+  async register(
+    @Body() createUserDto: CreateUserDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.usersService.registerUser(createUserDto);
+    if (user) {
+      const tokens = await this.authService.getTokens(user.id, user.email);
+      res.cookie('refresh_token', tokens.refreshToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      res.status(HttpStatus.OK).json({
+        message: 'Пользователь зарегистрирован',
+        token: tokens.accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          age: user.age,
+          height: user.height,
+        },
+      });
+    } else {
+      res.status(HttpStatus.NO_CONTENT).json({
+        message: 'Пользователь уже зарегистрирован',
+      });
+    }
   }
 }

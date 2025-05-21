@@ -1,24 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import { Request, Response } from 'express';
+import { LoginDto } from '../dto/login.dto';
+import { compare } from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
-  register(dto: {
-    email: string;
-    password: string;
-    age: number;
-    height: number;
-  }) {
-    return { message: 'Пользователь зарегистрирован' };
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
+
+  async login(loginDto: LoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: loginDto.email },
+    });
+
+    if (!user) {
+      throw new ForbiddenException('Неверный email или пароль');
+    }
+    const isPasswordValid = await compare(loginDto.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new ForbiddenException('Неверный email или пароль');
+    }
+
+    const tokens = await this.getTokens(user.id, user.email);
+    return { user, tokens };
   }
 
-  async login(dto: { email: string; password: string }) {
-    const token = await this.getTokens('123', dto.email);
-    return { accessToken: token.accessToken, refreshToken: token.refreshToken };
-  }
-
-  async getTokens(userId: string, email: string) {
+  async getTokens(
+    userId: string,
+    email: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: userId, email };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -33,5 +48,34 @@ export class AuthService {
     ]);
 
     return { accessToken, refreshToken };
+  }
+
+  async refreshToken(req: Request, res: Response) {
+    const token = (req.cookies as { refresh_token?: string })?.refresh_token;
+
+    if (!token) {
+      throw new ForbiddenException('Нет refresh токена');
+    }
+    let payload: { sub: string; email: string };
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+    } catch (e) {
+      throw new ForbiddenException('Невалидный refresh токен');
+    }
+
+    const tokens = await this.getTokens(payload.sub, payload.email);
+
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+    });
+
+    return {
+      accessToken: tokens.accessToken,
+    };
   }
 }
