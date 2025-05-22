@@ -22,25 +22,19 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, tokens } = await this.authService.login(loginDto);
+    return await this.authService.login(loginDto, res);
+  }
 
-    res.cookie('refresh_token', tokens.refreshToken, {
+  @Post('/logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('refresh_token', {
       httpOnly: true,
-      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: 'lax',
+      path: '/',
     });
 
-    res.status(HttpStatus.OK).json({
-      message: 'Успешный вход',
-      token: tokens.accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        age: user.age,
-        height: user.height,
-      },
-    });
+    return { message: 'Успешный выход' };
   }
 
   @Post('/register')

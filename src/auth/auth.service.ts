@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Request, Response } from 'express';
@@ -12,7 +12,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, res: Response) {
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
     });
@@ -27,7 +27,24 @@ export class AuthService {
     }
 
     const tokens = await this.getTokens(user.id, user.email);
-    return { user, tokens };
+
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(HttpStatus.OK).json({
+      message: 'Успешный вход',
+      token: tokens.accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        age: user.age,
+        height: user.height,
+      },
+    });
   }
 
   async getTokens(
@@ -62,7 +79,7 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch (e) {
-      throw new ForbiddenException('Невалидный refresh токен');
+      throw new ForbiddenException(`Неверный refresh токен ${e}`);
     }
 
     const tokens = await this.getTokens(payload.sub, payload.email);
