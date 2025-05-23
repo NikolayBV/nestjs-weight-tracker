@@ -11,7 +11,7 @@ export class CreateUserDto {
 
   @IsInt({ message: 'Возраст должен быть целым числом' })
   @Min(1, { message: 'Возраст должен быть больше 0' })
-  age: number;
+  birthdayDate: Date;
 
   @IsInt({ message: 'Рост должен быть целым числом' })
   @Min(1, { message: 'Рост должен быть больше 0' })

@@ -13,7 +13,7 @@ export class User {
   password: string;
 
   @Column()
-  age: number;
+  birthdayDate: Date;
 
   @Column()
   height: number;

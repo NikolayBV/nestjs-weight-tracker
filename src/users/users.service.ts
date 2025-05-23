@@ -39,7 +39,7 @@ export class UsersService {
       data: {
         email: dto.email,
         password: hashPass,
-        age: +dto.age,
+        birthdayDate: new Date(dto.birthdayDate),
         height: +dto.height,
       },
     });
