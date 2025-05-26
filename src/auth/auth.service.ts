@@ -16,13 +16,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
     });
-
-    if (!user) {
-      throw new ForbiddenException('Неверный email или пароль');
-    }
-    const isPasswordValid = await compare(loginDto.password, user.password);
-
-    if (!isPasswordValid) {
+    if (!user || !(await compare(loginDto.password, user.password))) {
       throw new ForbiddenException('Неверный email или пароль');
     }
 
@@ -35,7 +29,7 @@ export class AuthService {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(HttpStatus.OK).json({
+    return {
       message: 'Успешный вход',
       token: tokens.accessToken,
       user: {
@@ -44,7 +38,7 @@ export class AuthService {
         birthdayDate: user.birthdayDate,
         height: user.height,
       },
-    });
+    };
   }
 
   async getTokens(
