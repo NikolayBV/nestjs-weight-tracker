@@ -8,10 +8,22 @@ datasource db {
 }
 
 model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  birthdayDate DateTime
+  height       Int
+  createdAt    DateTime @default(now())
+
+  weights      Weight[]
+}
+
+model Weight {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  birthdayDate       DateTime
-  height    Int
+  userId    String
+  date      DateTime
+  weight    Float
   createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
