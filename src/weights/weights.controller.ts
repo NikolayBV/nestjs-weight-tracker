@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { WeightsService } from './weights.service';
 
 @Controller('weights')
@@ -10,5 +10,10 @@ export class WeightsController {
     @Body() dto: { weight: string; date: string },
   ) {
     return await this.weightsService.addWeight(userId, dto);
+  }
+
+  @Get(':userId')
+  async getWeights(@Param('userId') userId: string) {
+    return await this.weightsService.getWeight(userId);
   }
 }
