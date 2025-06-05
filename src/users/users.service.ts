@@ -41,6 +41,7 @@ export class UsersService {
         password: hashPass,
         birthdayDate: new Date(dto.birthdayDate),
         height: +dto.height,
+        gender: dto.gender,
       },
     });
   }

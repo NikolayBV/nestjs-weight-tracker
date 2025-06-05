@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "Gender" AS ENUM ('Man', 'Woman');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -5,6 +8,7 @@ CREATE TABLE "User" (
     "password" TEXT NOT NULL,
     "birthdayDate" TIMESTAMP(3) NOT NULL,
     "height" INTEGER NOT NULL,
+    "gender" "Gender" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")

@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { IsEmail, IsString, MinLength, IsInt, Min } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsInt,
+  Min,
+  IsEnum,
+} from 'class-validator';
+import { Gender } from '@prisma/client';
 
 export class CreateUserDto {
   @IsEmail(undefined, { message: 'Неверный формат email' })
@@ -16,4 +24,7 @@ export class CreateUserDto {
   @IsInt({ message: 'Рост должен быть целым числом' })
   @Min(1, { message: 'Рост должен быть больше 0' })
   height: number;
+
+  @IsEnum(Gender)
+  gender: Gender;
 }

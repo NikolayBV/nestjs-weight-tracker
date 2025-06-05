@@ -37,6 +37,7 @@ export class AuthService {
         email: user.email,
         birthdayDate: user.birthdayDate,
         height: user.height,
+        gender: user.gender,
       },
     };
   }
